@@ -535,12 +535,21 @@
 
             toggleLoading(true);
             try {
+                const systemPrompt = `你是一個頂尖的美食導遊與資料分析師。
+                使用者會提供一段文字、餐廳名稱，或者是社群平台（如 Threads, IG）的網址。
+                請你：
+                1. 判斷輸入內容。如果是網址，請使用 google_search 工具搜尋該網址，或提取網址中的帳號進行關聯搜尋，嘗試找出該貼文介紹的「真實餐廳店名」與「所在縣市」。
+                2. 若為一般文字或店名，請直接搜尋該餐廳。
+                3. 如果因為隱私限制「完全找不到」該網址對應的餐廳，店名請務必填寫 "無法辨識"。
+                4. 必須回傳嚴格的 JSON 格式：
+                {"name": "店名(找不到請填無法辨識)", "city": "精確縣市(如台北市)", "category": "料理類型", "rating": 4.5, "tags": ["特色1", "特色2"], "summary": "介紹摘要"}`;
+
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: text }] }],
-                        systemInstruction: { parts: [{ text: `回傳 JSON: {"name": "...", "city": "精確縣市", "category": "...", "rating": 4.5, "tags": ["..."], "summary": "..."}` }] },
+                        contents: [{ parts: [{ text: "請分析以下內容並找出餐廳資訊：" + text }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
                         tools: [{ "google_search": {} }],
                         generationConfig: { responseMimeType: "application/json" }
                     })
@@ -553,6 +562,10 @@
                 rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
                 const data = JSON.parse(rawText);
                 
+                if (data.name.includes("無法辨識")) {
+                    throw new Error("PrivacyWall");
+                }
+
                 await saveToFirestore(data);
                 input.value = "";
                 showToast(`成功收藏至 ${data.city}`);
@@ -560,6 +573,8 @@
                 console.error(err);
                 if (err.message === "No DB") {
                     showToast("⚠️ 缺少 Firebase 設定，無法儲存！");
+                } else if (err.message === "PrivacyWall") {
+                    showToast("⚠️ 社群隱私限制，請改用輸入框右側的「相機截圖辨識」！");
                 } else {
                     showToast("辨識失敗，請檢查連結是否正確");
                 }
