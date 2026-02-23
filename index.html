@@ -13,22 +13,32 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK (加入了安全防護機制) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'soso-eat-app';
+        // 安全地初始化 Firebase，避免在 GitHub Pages 等外部環境直接報錯當機
+        try {
+            if (typeof __firebase_config !== 'undefined') {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'soso-eat-app';
 
-        window.dbTools = { 
-            db, auth, appId, collection, doc, setDoc, deleteDoc, onSnapshot, query,
-            signInAnonymously, signInWithCustomToken, onAuthStateChanged 
-        };
+                window.dbTools = { 
+                    db, auth, appId, collection, doc, setDoc, deleteDoc, onSnapshot, query,
+                    signInAnonymously, signInWithCustomToken, onAuthStateChanged 
+                };
+            } else {
+                window.dbTools = "MISSING"; // 標記為缺少環境變數
+            }
+        } catch (error) {
+            console.error("Firebase 初始化失敗:", error);
+            window.dbTools = "MISSING";
+        }
     </script>
 
     <style>
@@ -51,7 +61,6 @@
             min-height: 100vh;
         }
 
-        /* 設計感背景球 */
         .bg-blob {
             position: fixed;
             width: 300px;
@@ -63,25 +72,16 @@
             pointer-events: none;
         }
 
-        /* 增強陰影的導航列 */
         .glass-nav {
             background: var(--glass-bg);
             backdrop-filter: saturate(180%) blur(20px);
             -webkit-backdrop-filter: saturate(180%) blur(20px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-            /* 多重陰影營造深度感 */
-            box-shadow: 
-                0 4px 20px -5px rgba(0, 0, 0, 0.03),
-                0 15px 35px -10px rgba(255, 107, 53, 0.05);
+            box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.03), 0 15px 35px -10px rgba(255, 107, 53, 0.05);
         }
 
         .tap-scale:active { transform: scale(0.96); }
-        
-        /* 餐廳卡片陰影 */
-        .card-shadow {
-            box-shadow: 0 10px 40px -10px rgba(255, 107, 53, 0.08), 0 5px 15px -5px rgba(0, 0, 0, 0.03);
-        }
-
+        .card-shadow { box-shadow: 0 10px 40px -10px rgba(255, 107, 53, 0.08), 0 5px 15px -5px rgba(0, 0, 0, 0.03); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -109,7 +109,6 @@
             background: var(--brand-orange);
         }
 
-        /* 地圖設計感優化 */
         #taiwan-map path {
             fill: #E9EEF2;
             stroke: #FFFFFF;
@@ -121,22 +120,16 @@
         #taiwan-map path.active-city { fill: #FF6B35 !important; stroke: #EA580C; filter: drop-shadow(0 4px 6px rgba(255, 107, 53, 0.2)); }
         #taiwan-map path:hover { fill: #FFD2BC; }
 
-        .drawer-up {
-            transform: translateY(100%);
-            transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
-        }
+        .drawer-up { transform: translateY(100%); transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1); }
         .drawer-up.open { transform: translateY(0); }
-
         .city-tab-item { transition: all 0.2s ease; }
     </style>
 </head>
 <body class="flex flex-col min-h-screen select-none overflow-x-hidden">
 
-    <!-- 背景裝飾球 -->
     <div class="bg-blob" style="top: -50px; left: -50px;"></div>
     <div class="bg-blob" style="bottom: 100px; right: -100px; width: 400px; height: 400px; opacity: 0.6;"></div>
 
-    <!-- 頂部智慧搜尋區 -->
     <header id="main-header" class="glass-nav sticky top-0 z-50 px-6 pt-14 pb-5">
         <div class="max-w-md mx-auto">
             <div class="flex items-center justify-between mb-5">
@@ -154,7 +147,6 @@
             
             <div class="relative flex flex-col gap-2">
                 <div class="relative flex items-center gap-2">
-                    <!-- 加強陰影的輸入區域容器 -->
                     <div class="relative flex-grow group">
                         <i data-lucide="link-2" class="absolute left-4 top-4 text-gray-300 group-focus-within:text-orange-400 w-4 h-4 transition-colors"></i>
                         <input type="text" id="aiInput" 
@@ -178,10 +170,7 @@
         </div>
     </header>
 
-    <!-- 主內容區 -->
     <main class="flex-grow pb-24 overflow-x-hidden relative">
-        
-        <!-- [探索分頁] -->
         <div id="page-home" class="page-content">
             <section class="mt-6">
                 <div id="city-tabs" class="flex gap-4 overflow-x-auto no-scrollbar px-6 pb-4">
@@ -203,7 +192,6 @@
             </section>
         </div>
 
-        <!-- [地圖/城市分頁] -->
         <div id="page-cities" class="page-content hidden px-6 pt-10">
             <div class="max-w-md mx-auto text-center">
                 <div class="inline-block px-3 py-1 bg-white rounded-full border border-gray-100 text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] mb-4">Discovery Map</div>
@@ -213,7 +201,6 @@
                 <div class="relative bg-white/40 backdrop-blur-sm rounded-[3rem] p-8 border border-white/60 shadow-inner mb-10">
                     <div class="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-orange-100/30 blur-[60px] rounded-full"></div>
                     <svg id="taiwan-map" viewBox="0 0 595.28 841.89" class="w-full h-auto max-w-[280px] mx-auto filter drop-shadow-2xl">
-                        <!-- 縣市路徑 -->
                         <path id="基隆市" d="M428.5,47.5l-2.8,4.2l5.7,2.8l1.4-4.2L428.5,47.5z" />
                         <path id="台北市" d="M410.5,60.5l-10,15.7l14.3,11.4l11.4-18.6L410.5,60.5z" />
                         <path id="新北市" d="M380.5,40.5l-5.7,28.6l31.4,45.7l40-20l-14.3-48.6L380.5,40.5z" />
@@ -250,21 +237,35 @@
             </div>
         </div>
 
-        <!-- [個人分頁] -->
         <div id="page-profile" class="page-content hidden px-6 pt-20">
             <div class="max-w-md mx-auto text-center">
                  <div class="w-24 h-24 bg-gradient-to-tr from-orange-500 to-orange-300 rounded-[2.5rem] mx-auto mb-6 flex items-center justify-center text-white shadow-xl shadow-orange-100">
                      <i data-lucide="user" class="w-12 h-12"></i>
                  </div>
                  <h2 class="text-2xl font-black text-gray-900">美食探索家</h2>
-                 <p class="text-sm text-gray-400 mt-3 font-medium leading-relaxed px-10">
-                     繼續收藏您的城市驚喜，<br>
-                     建立專屬於您的私藏地圖。
-                 </p>
-                 <div class="mt-12 bg-white rounded-[2.5rem] p-8 border border-gray-50 card-shadow">
+                 <p class="text-sm text-gray-400 mt-3 font-medium leading-relaxed px-10">繼續收藏您的城市驚喜，<br>建立專屬於您的私藏地圖。</p>
+                 
+                 <!-- 新增：API 金鑰設定區塊 -->
+                 <div class="mt-10 bg-white rounded-[2.5rem] p-8 border border-gray-50 card-shadow text-left relative overflow-hidden">
+                     <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-orange-400 to-orange-200"></div>
+                     <h3 class="text-lg font-black text-gray-900 mb-1">系統設定</h3>
+                     <p class="text-[10px] text-gray-400 mb-5 font-bold uppercase tracking-widest">AI Engine Configuration</p>
+                     
+                     <label class="block text-xs font-bold text-gray-700 mb-2">Gemini API 金鑰</label>
+                     <div class="relative mb-4">
+                         <i data-lucide="key" class="absolute left-4 top-3.5 text-gray-400 w-4 h-4"></i>
+                         <input type="password" id="apiKeyInput" placeholder="輸入 AIzaSy... 開頭的金鑰" 
+                             class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3.5 pl-11 pr-4 text-xs focus:ring-2 focus:ring-orange-500/20 focus:bg-white outline-none transition-all placeholder-gray-300 font-mono">
+                     </div>
+                     <button onclick="saveApiKey()" class="w-full bg-gray-900 text-white py-3.5 rounded-2xl text-xs font-bold tap-scale shadow-lg shadow-gray-200 hover:bg-black transition-all">
+                         儲存金鑰
+                     </button>
+                 </div>
+
+                 <div class="mt-6 bg-white rounded-[2.5rem] p-8 border border-gray-50 card-shadow">
                      <div class="flex items-center justify-between mb-4">
                          <span class="text-xs font-bold text-gray-400">當前版本</span>
-                         <span class="text-xs font-black text-gray-900 tracking-tighter">v2.5 Premium</span>
+                         <span class="text-xs font-black text-gray-900 tracking-tighter">v3.0 Auto-Sync</span>
                      </div>
                      <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                          <div class="w-1/3 h-full bg-orange-500"></div>
@@ -274,7 +275,6 @@
         </div>
     </main>
 
-    <!-- 城市探索抽屜 -->
     <div id="city-drawer" class="fixed inset-0 bg-gray-900/40 z-[100] hidden opacity-0 transition-opacity backdrop-blur-sm">
         <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[3.5rem] p-8 pb-12 h-[82vh] overflow-y-auto drawer-up no-scrollbar shadow-2xl border-t border-white/50">
             <div class="w-12 h-1.5 bg-gray-100 rounded-full mx-auto mb-8"></div>
@@ -309,7 +309,6 @@
         </div>
     </div>
 
-    <!-- 底部導覽列 -->
     <nav class="glass-nav fixed bottom-0 left-0 right-0 border-t border-white/50 px-8 pt-4 pb-8 flex justify-around items-center z-50 rounded-t-[2.5rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
         <button onclick="switchTab('home')" id="tab-home" class="flex flex-col items-center gap-1.5 tap-scale text-orange-500 transition-all">
             <i data-lucide="compass" class="w-6 h-6"></i>
@@ -325,23 +324,40 @@
         </button>
     </nav>
 
-    <!-- 吐司訊息 -->
-    <div id="toast" class="fixed bottom-32 left-1/2 -translate-x-1/2 bg-gray-900/95 backdrop-blur-md text-white px-6 py-3.5 rounded-2xl text-[10px] font-black tracking-widest uppercase shadow-2xl z-[150] opacity-0 pointer-events-none transition-all duration-300">
-        Success!
+    <div id="toast" class="fixed bottom-32 left-1/2 -translate-x-1/2 bg-gray-900/95 backdrop-blur-md text-white px-6 py-3.5 rounded-2xl text-[12px] font-bold tracking-wide shadow-2xl z-[150] opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap">
+        提示訊息
     </div>
 
     <script>
         let allRestaurants = [];
         let currentCityFilter = "全部";
         let activeDrawerCity = "";
-        const apiKey = ""; 
+        
+        // 修改：改為從使用者的手機緩存 (LocalStorage) 中讀取金鑰
+        let apiKey = localStorage.getItem('gemini_api_key') || ""; 
+
+        // 新增：儲存金鑰的函數
+        function saveApiKey() {
+            const inputVal = document.getElementById('apiKeyInput').value.trim();
+            if (inputVal) {
+                apiKey = inputVal;
+                localStorage.setItem('gemini_api_key', apiKey);
+                showToast("✅ API 金鑰已成功儲存！");
+            } else {
+                showToast("⚠️ 請輸入有效的金鑰");
+            }
+        }
 
         async function init() {
             lucide.createIcons();
             initMapEvents();
             
+            // 初始化時將已儲存的金鑰填入輸入框
+            if(apiKey) document.getElementById('apiKeyInput').value = apiKey;
+            
+            let checkCount = 0;
             const checkFirebase = setInterval(async () => {
-                if (window.dbTools) {
+                if (window.dbTools && window.dbTools !== "MISSING") {
                     clearInterval(checkFirebase);
                     const { auth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } = window.dbTools;
                     
@@ -354,8 +370,24 @@
                     onAuthStateChanged(auth, (user) => {
                         if (user) listenData(user.uid);
                     });
+                } else if (window.dbTools === "MISSING" || checkCount > 30) {
+                    clearInterval(checkFirebase);
+                    // 若無 Firebase，啟用本地儲存模式 (LocalStorage)
+                    console.log("啟用手機本地儲存模式");
+                    loadLocalData();
                 }
+                checkCount++;
             }, 100);
+        }
+
+        // 新增：本地儲存模式讀取
+        function loadLocalData() {
+            const saved = localStorage.getItem('local_restaurants');
+            if (saved) {
+                allRestaurants = JSON.parse(saved);
+            }
+            updateUI();
+            updateMapData();
         }
 
         function listenData(uid) {
@@ -404,6 +436,14 @@
 
         async function discoverFood(type) {
             const container = document.getElementById('discovery-results');
+            
+            // 修改：檢查動態的金鑰變數
+            if (!apiKey || apiKey === "") {
+                showToast("⚠️ 請先至「我的」分頁輸入 API 金鑰！");
+                switchTab('profile');
+                return;
+            }
+
             container.innerHTML = `
                 <div class="flex flex-col items-center justify-center py-20 space-y-6">
                     <div class="relative">
@@ -433,10 +473,15 @@
                 });
 
                 const result = await response.json();
-                const list = JSON.parse(result.candidates[0].content.parts[0].text);
+                if (result.error) { throw new Error(result.error.message); }
+
+                let rawText = result.candidates[0].content.parts[0].text;
+                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                const list = JSON.parse(rawText);
                 renderDiscoveryList(list);
             } catch (err) {
-                container.innerHTML = `<p class="text-center py-10 text-xs text-red-400 font-bold uppercase tracking-widest">Search Failed</p>`;
+                console.error(err);
+                container.innerHTML = `<p class="text-center py-10 text-xs text-red-400 font-bold uppercase tracking-widest">搜尋失敗，請檢查金鑰或網路</p>`;
             }
         }
 
@@ -465,14 +510,29 @@
         }
 
         async function addFromDiscovery(item) {
-            await saveToFirestore(item);
-            showToast(`Added: ${item.name}`);
+            try {
+                await saveToFirestore(item);
+                showToast(`已收藏：${item.name}`);
+            } catch(e) {
+                showToast("⚠️ 儲存失敗，請確認資料庫設定");
+            }
         }
 
         async function processWithAI() {
             const input = document.getElementById('aiInput');
             const text = input.value.trim();
-            if (!text) return;
+            if (!text) {
+                showToast("請先貼上網址或輸入店名喔！");
+                return;
+            }
+            
+            // 修改：檢查動態金鑰
+            if (!apiKey || apiKey === "") {
+                showToast("⚠️ 請先至「我的」分頁輸入 API 金鑰！");
+                switchTab('profile');
+                return;
+            }
+
             toggleLoading(true);
             try {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
@@ -485,13 +545,24 @@
                         generationConfig: { responseMimeType: "application/json" }
                     })
                 });
+                
                 const result = await response.json();
-                const data = JSON.parse(result.candidates[0].content.parts[0].text);
+                if (result.error) { throw new Error(result.error.message); }
+
+                let rawText = result.candidates[0].content.parts[0].text;
+                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                const data = JSON.parse(rawText);
+                
                 await saveToFirestore(data);
                 input.value = "";
-                showToast(`Saved to ${data.city}`);
+                showToast(`成功收藏至 ${data.city}`);
             } catch (err) {
-                showToast("Analysis Error");
+                console.error(err);
+                if (err.message === "No DB") {
+                    showToast("⚠️ 缺少 Firebase 設定，無法儲存！");
+                } else {
+                    showToast("辨識失敗，請檢查連結是否正確");
+                }
             } finally {
                 toggleLoading(false);
             }
@@ -500,7 +571,17 @@
         async function processImageWithAI(event) {
             const file = event.target.files[0];
             if (!file) return;
+
+            // 修改：檢查動態金鑰
+            if (!apiKey || apiKey === "") {
+                showToast("⚠️ 請先至「我的」分頁輸入 API 金鑰！");
+                event.target.value = '';
+                switchTab('profile');
+                return;
+            }
+
             toggleLoading(true);
+            showToast("正在辨識截圖內容...");
             try {
                 const base64Data = await fileToBase64(file);
                 const base64Content = base64Data.split(',')[1];
@@ -514,12 +595,19 @@
                         generationConfig: { responseMimeType: "application/json" }
                     })
                 });
+                
                 const result = await response.json();
-                const data = JSON.parse(result.candidates[0].content.parts[0].text);
+                if (result.error) { throw new Error(result.error.message); }
+
+                let rawText = result.candidates[0].content.parts[0].text;
+                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                const data = JSON.parse(rawText);
+                
                 await saveToFirestore(data);
-                showToast(`Vision Saved: ${data.name}`);
+                showToast(`截圖辨識成功：${data.name}`);
             } catch (err) {
-                showToast("Vision Error");
+                console.error(err);
+                showToast("截圖辨識失敗，請換一張試試");
             } finally {
                 toggleLoading(false);
                 event.target.value = '';
@@ -546,11 +634,24 @@
             document.getElementById('main-header').style.display = (tabId === 'home') ? 'block' : 'none';
         }
 
+        // 修改：智慧儲存系統 (支援 Firebase 或 LocalStorage 雙模)
         async function saveToFirestore(data) {
-            const { db, auth, appId, collection, doc, setDoc } = window.dbTools;
-            const uid = auth.currentUser.uid;
-            const newDocRef = doc(collection(db, 'artifacts', appId, 'users', uid, 'restaurants'));
-            await setDoc(newDocRef, { ...data, createdAt: Date.now() });
+            const item = { ...data, id: 'res_' + Date.now(), createdAt: Date.now() };
+            
+            if (window.dbTools && window.dbTools !== "MISSING") {
+                const { db, auth, appId, collection, doc, setDoc } = window.dbTools;
+                if (!auth.currentUser) throw new Error("Not logged in");
+                const uid = auth.currentUser.uid;
+                const newDocRef = doc(collection(db, 'artifacts', appId, 'users', uid, 'restaurants'));
+                item.id = newDocRef.id;
+                await setDoc(newDocRef, item);
+            } else {
+                // 本地儲存模式
+                allRestaurants.unshift(item);
+                localStorage.setItem('local_restaurants', JSON.stringify(allRestaurants));
+                updateUI();
+                updateMapData();
+            }
         }
 
         function updateUI() {
@@ -598,11 +699,21 @@
             }
         }
 
+        // 修改：智慧刪除系統 (支援雙模)
         async function removeRestaurant(id) {
             if(!confirm("確定要刪除收藏？")) return;
-            const { db, auth, appId, doc, deleteDoc } = window.dbTools;
-            const uid = auth.currentUser.uid;
-            await deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'restaurants', id));
+            
+            if (window.dbTools && window.dbTools !== "MISSING") {
+                const { db, auth, appId, doc, deleteDoc } = window.dbTools;
+                const uid = auth.currentUser.uid;
+                await deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'restaurants', id));
+            } else {
+                // 本地刪除模式
+                allRestaurants = allRestaurants.filter(r => r.id !== id);
+                localStorage.setItem('local_restaurants', JSON.stringify(allRestaurants));
+                updateUI();
+                updateMapData();
+            }
         }
 
         function filterByCity(name) {
@@ -619,6 +730,7 @@
         function showToast(text) {
             const toast = document.getElementById('toast');
             toast.innerText = text;
+            toast.style.backgroundColor = text.includes('⚠️') ? 'rgba(239, 68, 68, 0.95)' : 'rgba(17, 24, 39, 0.95)';
             toast.classList.remove('opacity-0', 'pointer-events-none');
             toast.classList.add('bottom-36');
             setTimeout(() => {
